@@ -1,0 +1,692 @@
+import { useState, useEffect, useRef } from 'react';
+import { 
+  ImagePlus, Sparkles, Check, 
+  Lock, Warehouse, Download, 
+  RotateCcw, Share2, FileText,
+  AlertCircle, AlertTriangle, CheckCircle2
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { estimatorData } from '../data/estimatorData';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// --- Components ---
+
+const BrandlineLogo = ({ height = 36 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 258.53 52.47" style={{ height }}>
+    <defs>
+      <style>{`.cls-1{fill:#fbfcfb}.cls-5{fill:#038d46}.cls-7{fill:#0b914c}.cls-9{fill:#0b904c}.cls-10{fill:#fbfcfc}.cls-12{fill:#1c9859}`}</style>
+    </defs>
+    <g>
+      <path className="cls-5" d="M69.9,52.47H8.3c-1.4-.1-2.79-.34-4.14-.73-2.46-.55-5-4.86-3.89-7.44,2-4.64,3.79-9.35,5.77-14,2.69-6.27,5.34-12.57,8.27-18.72C17.75,4.36,23.44.26,31.66.24c28.87-.06,57.75-.11,86.63-.15,11.83,0,23.66-.12,35.5-.09,1.51.04,3,.33,4.41.86,2.63.96,4.22,3.64,3.81,6.41-.14,1.35-.48,2.68-1,3.93-4.36,10.06-8.59,20.19-13.26,30.1-3.3,7-9,10.93-17,10.94h-60.84v.23Z"/>
+      <rect className="cls-5" x="14.56" y="6.2" width="134.36" height="39.5" rx="8.98" ry="8.98"/>
+    </g>
+    <g>
+      <path className="cls-7" d="M224.92,36.24c.63,2.96,3.28,5.06,6.31,5h8.65c1,0,2.1.1,2.13,1.36s-1,1.5-2.15,1.49h-8.19c-5.21.2-9.62-3.8-9.92-9-.14-1.71-.14-3.44,0-5.15.43-4.91,4.52-8.69,9.45-8.73h3.94c4.7.03,8.67,3.48,9.36,8.13.19,1.66.24,3.33.13,5,0,1.3-1,1.94-2.56,1.94h-15.48l-1.67-.04ZM241.84,33.33v-2.37c.1-3.77-2.88-6.9-6.66-7-.11,0-.23,0-.34,0h-2.58c-5.55,0-8.53,3.66-7.52,9.34l17.1.03Z"/>
+      <path className="cls-7" d="M217.69,36.14v6.06c0,1.06-.36,1.88-1.5,1.85s-1.36-.85-1.36-1.83v-11.07c.21-3.74-2.65-6.94-6.39-7.15-.25-.01-.49-.01-.74,0h-2.58c-4.84,0-7.57,2.75-7.57,7.64v10.32c0,1.05-.11,2.07-1.39,2.09s-1.48-1-1.47-2v-11.23c0-5.31,4.31-9.62,9.62-9.62.02,0,.05,0,.07,0h3.64c5.31,0,9.62,4.3,9.63,9.61,0,.02,0,.03,0,.05.05,1.74.04,3.51.04,5.28Z"/>
+      <path className="cls-7" d="M165.33,25.58v-9.11c0-1.11.13-2.19,1.47-2.16s1.39,1,1.38,2.11v17.6c0,4.56,2.7,7.23,7.28,7.24h7.13c1,0,1.92.3,1.92,1.43s-.89,1.43-1.92,1.42h-8c-5.05-.1-9.12-4.19-9.19-9.24-.12-3.12-.07-6.17-.07-9.29Z"/>
+      <path className="cls-9" d="M189.59,32.93v9.09c0,1.06-.18,2.05-1.45,2s-1.41-1-1.41-2.07v-18.47c0-1.08.22-2.05,1.45-2s1.42,1,1.41,2.08c-.06,3.14,0,6.24,0,9.37Z"/>
+    </g>
+    <g>
+      <path className="cls-10" d="M38.59,43.2c-3.08.07-6.15.17-9.22.19s-6.16,0-9.23-.07c0-.55-.06-1.11-.06-1.66,0-9.24.05-18.47,0-27.71,0-2.17.59-3.83,2.49-4.94,5.6.06,11.21-.18,16.78.24,5.94.44,8.93,5.09,7.54,10.87-.46,1.91-1.12,2.77-3.59,4.65,0,.08.07.21.14.24,4,1.69,5.18,4.95,4.88,9-.08,3.81-2.56,7.17-6.18,8.36-1.05.34-2.12.61-3.21.81l-.34.02Z"/>
+      <path className="cls-1" d="M129.65,16.47c2.69-.41,5.43.32,7.57,2l1.47,1.66.39-.2v-10.71c1.11,0,2.22-.08,3.33,0,1.76.03,3.18,1.43,3.23,3.19,0,7.07.17,14.14-.1,21.21-.24,6.21-3.8,9.71-10,10.29-2.07.08-4.14.05-6.2-.11-.24-.16-.5-.29-.77-.4-3.7-.85-6.55-3.81-7.26-7.54-.59-2.49-.81-5.06-.64-7.61.3-2.54,1.02-5.01,2.12-7.32,1.29-2.8,4.04-3.8,6.86-4.46Z"/>
+      <path className="cls-1" d="M78.06,27.01l1.51-.21,1-.15.52-.13c.99-.11,1.97-.35,2.91-.7.93-.41,1.35-1.49.94-2.41-.18-.42-.52-.75-.94-.94-.93-.31-1.89-.51-2.87-.59-1.69-.13-3.34-.16-4.48,1.47-.15.22-.62.29-.94.29-1.92,0-3.83,0-5.75-.05.31-3.08,2.46-5.67,5.43-6.54l1.52-.58c2.77-.04,5.54.07,8.29.35,4.55.71,6.48,3.28,6.47,7.88v7.58c0,6.94-3,10.5-9.88,11.48-2.21.18-4.42.2-6.63.06-.58-.29-1.14-.59-1.72-.87-5.06-2.49-6.09-9.8-1.68-13.27,1.58-1.24,3.81-1.65,5.75-2.44l.55-.23Z"/>
+      <path className="cls-10" d="M105.92,22.25c-3,.24-4.17,1.51-4.19,4.43,0,5.49,0,11-.06,16.47,0,.05,0,.09-.15.32h-6.47c0-5.9-.16-11.8,0-17.68-.07-3.71,2.17-7.06,5.62-8.42.91-.38,1.89-.61,2.84-.9,2-.07,4.01,0,6,.19,4.78.79,7.61,3.38,7.92,8.18.4,6.16.09,12.36.09,18.64h-4.33c-1.7-.73-2.24-2-2.2-3.85.11-4.18.05-8.36,0-12.54.1-3.5-1.54-5.02-5.07-4.84Z"/>
+      <path className="cls-1" d="M61.7,16.84l.88-.08h3.8v6.91h-2.59c-3.34.11-5.2,1.93-5.26,5.35-.08,4.54,0,9.08-.06,13.63,0,.19,0,.39-.06.59h-6.94c.19-5.8.18-11.35.61-16.87.16-3,1.8-5.73,4.39-7.27,1.69-.87,3.44-1.62,5.23-2.26Z"/>
+    </g>
+  </svg>
+);
+
+const NumberCounter = ({ value }) => {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let start = 0;
+    const end = parseInt(value);
+    if (start === end) return;
+    
+    let totalMilisecondDuraton = 1000;
+    let incrementTime = (totalMilisecondDuraton / end) * 5;
+    
+    let timer = setInterval(() => {
+      start += 5;
+      setCount(start);
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      }
+    }, incrementTime);
+    
+    return () => clearInterval(timer);
+  }, [value]);
+  
+  return <span>{count.toLocaleString()}</span>;
+};
+
+// --- Main Page Component ---
+
+export default function JobEstimator() {
+  const [state, setState] = useState(1); // 1: Input, 2: Loading, 3: Results
+  const [image, setImage] = useState(null);
+  const [productType, setProductType] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [statusIndex, setStatusIndex] = useState(0);
+  
+  const fileInputRef = useRef(null);
+  
+  const statusMessages = [
+    "Analysing product specifications...",
+    "Calculating material requirements...",
+    "Checking inventory levels...",
+    "Estimating labour and production time...",
+    "Calculating internal cost breakdown...",
+    "Generating client proposal...",
+    "Finalising your estimate..."
+  ];
+
+  // --- Handlers ---
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result);
+        setProductType('Exhibition Stall');
+        toast.success("Image uploaded. Product detected: Exhibition Stall");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerate = () => {
+    if (!productType) {
+      toast.error("Please select a product type or upload an image.");
+      return;
+    }
+    toast.info(`Generating estimate for ${productType}...`);
+    setState(2);
+    
+    // Start loading animation
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 1;
+      setLoadingProgress(progress);
+      
+      // Update status messages every 500ms
+      if (progress % 14 === 0 && statusIndex < statusMessages.length - 1) {
+        setStatusIndex(prev => prev + 1);
+      }
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => setState(3), 500);
+      }
+    }, 35); // 3.5 seconds total
+  };
+
+  const resetState = () => {
+    setState(1);
+    setImage(null);
+    setProductType('');
+    setQuantity(1);
+    setLoadingProgress(0);
+    setStatusIndex(0);
+    toast("Resetting all parameters...");
+  };
+
+  // --- Calculations ---
+
+  const selectedData = estimatorData[productType] || estimatorData["Exhibition Stall"];
+  
+  const materialCost = selectedData.materials.reduce((acc, m) => acc + (m.qty * m.unitCost), 0) * quantity;
+  const labourCost = selectedData.labourCost * quantity;
+  const overhead = (materialCost + labourCost) * 0.15;
+  const totalInternalCost = materialCost + labourCost + overhead;
+  const clientProposalTotal = totalInternalCost * 1.35;
+
+  const inventorySummary = selectedData.materials.reduce((acc, m) => {
+    acc[m.inStock] = (acc[m.inStock] || 0) + 1;
+    return acc;
+  }, {});
+
+  // --- Render Functions ---
+
+  const renderState1 = () => (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="max-w-4xl mx-auto w-full py-12"
+    >
+      <div className="text-center mb-12">
+        <div className="flex justify-center mb-6">
+          <BrandlineLogo height={48} />
+        </div>
+        <h1 className="text-3xl font-bold text-brand-text mb-2">What do you want to build?</h1>
+        <p className="text-brand-text-muted">Upload a reference image or select a product type to generate your cost estimate and client proposal instantly.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        {/* Option A: Image Upload */}
+        <div 
+          onClick={() => fileInputRef.current.click()}
+          className={cn(
+            "relative group cursor-pointer aspect-square rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-8 text-center bg-brand-card/50 hover:bg-brand-card hover:border-brand-primary",
+            image ? "border-brand-primary bg-brand-card" : "border-brand-border"
+          )}
+        >
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleImageUpload} 
+          />
+          {image ? (
+            <div className="w-full h-full relative p-2 overflow-hidden">
+              <img src={image} alt="Preview" className="w-full h-full object-contain rounded-lg" />
+              <div className="absolute top-4 right-4 bg-brand-primary text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center shadow-lg animate-pulse">
+                <Sparkles size={10} className="mr-1" /> AI ANALYZED
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary mb-4 group-hover:scale-110 transition-transform">
+                <ImagePlus size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-brand-text mb-1">Upload Reference Image</h3>
+              <p className="text-sm text-brand-text-muted">JPG, PNG, or PDF</p>
+            </>
+          )}
+        </div>
+
+        {/* Option B: Product Dropdown */}
+        <div className={cn(
+          "rounded-2xl border-2 transition-all p-8 flex flex-col items-center justify-center text-center bg-brand-card/50",
+          productType && !image ? "border-brand-primary bg-brand-card" : "border-brand-border"
+        )}>
+          <div className="w-16 h-16 rounded-full bg-brand-bg flex items-center justify-center text-brand-primary mb-6">
+            <FileText size={32} />
+          </div>
+          <label className="text-lg font-semibold text-brand-text mb-4">Or choose a product type</label>
+          <select 
+            value={productType}
+            onChange={(e) => {
+              setProductType(e.target.value);
+              setImage(null);
+            }}
+            className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-3 text-brand-text focus:outline-none focus:border-brand-primary appearance-none cursor-pointer"
+          >
+            <option value="" disabled>Select Product Type</option>
+            <optgroup label="Signage & Display">
+              <option value="Exhibition Stall">Exhibition Stall</option>
+              <option value="Shop Signage">Shop Signage</option>
+              <option value="Standee">Standee</option>
+              <option value="Kiosk">Kiosk</option>
+              <option value="Billboard">Billboard</option>
+            </optgroup>
+            <optgroup label="Print & Branding">
+              <option value="Flex Banner">Flex Banner</option>
+              <option value="Brochure">Brochure</option>
+              <option value="Packaging">Packaging</option>
+              <option value="Window Graphics">Window Graphics</option>
+            </optgroup>
+            <optgroup label="Specialty">
+              <option value="Vehicle Wrap">Vehicle Wrap</option>
+              <option value="POP Rack & Stand">POP Rack & Stand</option>
+              <option value="Promotional Float">Promotional Float</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div className="max-w-md mx-auto mb-10">
+        <label className="block text-sm font-medium text-brand-text mb-2 text-center">Quantity</label>
+        <div className="relative">
+          <input 
+            type="number" 
+            min="1"
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-full bg-brand-card border border-brand-border rounded-xl px-4 py-3 text-center text-xl font-bold text-brand-text focus:outline-none focus:border-brand-primary"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-center">
+        <button 
+          onClick={handleGenerate}
+          disabled={!productType}
+          className={cn(
+            "w-full max-w-2xl py-4 rounded-xl font-bold text-lg flex items-center justify-center transition-all shadow-lg",
+            productType 
+              ? "bg-brand-primary text-white hover:bg-brand-primary-hover shadow-brand-primary/20 scale-100" 
+              : "bg-gray-600 text-gray-400 cursor-not-allowed scale-95"
+          )}
+        >
+          <Sparkles className="mr-3" size={24} />
+          Generate Estimate & Proposal
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  const renderState2 = () => (
+    <div className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto py-20 overflow-hidden">
+      <div className="mb-12 animate-bounce">
+        <BrandlineLogo height={36} />
+      </div>
+
+      <div className="relative w-48 h-48 mb-12">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle
+            cx="96"
+            cy="96"
+            r="88"
+            fill="transparent"
+            stroke="#4A4A4A"
+            strokeWidth="12"
+          />
+          <circle
+            cx="96"
+            cy="96"
+            r="88"
+            fill="transparent"
+            stroke="#038D46"
+            strokeWidth="12"
+            strokeDasharray={552.9}
+            strokeDashoffset={552.9 - (552.9 * loadingProgress) / 100}
+            strokeLinecap="round"
+            className="transition-all duration-300 ease-linear"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-5xl font-bold text-brand-text">{loadingProgress}%</span>
+        </div>
+      </div>
+
+      <div className="w-full space-y-4">
+        {statusMessages.map((msg, idx) => {
+          const isCompleted = idx < statusIndex;
+          const isActive = idx === statusIndex;
+          
+          if (idx > statusIndex + 1) return null;
+
+          return (
+            <motion.div 
+              key={msg}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: isCompleted || isActive ? 1 : 0.3, y: 0 }}
+              className={cn(
+                "flex items-center text-lg font-medium py-2 px-4 rounded-lg bg-brand-card/30",
+                isActive ? "border border-brand-primary/30 shadow-lg shadow-brand-primary/10 animate-pulse" : ""
+              )}
+            >
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center mr-4 shrink-0 transition-colors",
+                isCompleted ? "bg-brand-primary text-white" : "bg-brand-border text-brand-text-muted"
+              )}>
+                {isCompleted ? <Check size={14} /> : (isActive ? <div className="w-2 h-2 rounded-full bg-brand-primary animate-ping" /> : idx + 1)}
+              </div>
+              <span className={isActive ? "text-brand-text" : "text-brand-text-muted transition-colors"}>
+                {msg}
+              </span>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      <div className="mt-20 flex flex-col items-center">
+        <p className="text-brand-text-muted text-sm tracking-widest uppercase">Powered by Brandline AI</p>
+      </div>
+    </div>
+  );
+
+  const renderState3 = () => (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="pb-20"
+    >
+      {/* Top Bar Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 bg-brand-card p-6 rounded-2xl border border-brand-border sticky top-0 z-10 shadow-xl">
+        <div className="flex items-center">
+          <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary mr-4">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-brand-text flex items-center">
+              {productType} × {quantity}
+              <span className="ml-3 px-3 py-1 bg-brand-primary/20 text-brand-primary text-xs rounded-full">Estimate Ready</span>
+            </h1>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={resetState}
+            className="flex-1 md:flex-none px-6 py-2.5 rounded-xl border border-brand-border text-brand-text font-semibold hover:bg-brand-bg transition-colors flex items-center justify-center"
+          >
+            <RotateCcw size={18} className="mr-2" /> New Estimate
+          </button>
+          <button 
+            onClick={() => toast("PDF export coming in full build")}
+            className="flex-1 md:flex-none px-6 py-2.5 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary-hover transition-colors flex items-center justify-center"
+          >
+            <Download size={18} className="mr-2" /> Download PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+        {/* CEO INTERNAL VIEW */}
+        <div className="space-y-8 animate-fade-up" style={{ animationDelay: '0ms' }}>
+          <div className="bg-brand-card rounded-2xl overflow-hidden border-l-4 border-l-amber-500 shadow-lg">
+            <div className="p-6 border-b border-brand-border bg-brand-card/50">
+              <div className="flex items-center mb-1">
+                <Lock size={16} className="text-amber-500 mr-2" />
+                <h2 className="font-bold text-brand-text uppercase tracking-wider text-sm">Internal View</h2>
+              </div>
+              <p className="text-xs text-brand-text-muted">Confidential — not visible to client</p>
+            </div>
+
+            <div className="p-8 space-y-10">
+              {/* Timeline */}
+              <section>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-brand-text">Production Timeline</h3>
+                  <span className="text-2xl font-bold text-brand-primary">
+                    {selectedData.totalDays} Working Days
+                  </span>
+                </div>
+                <div className="h-3 bg-brand-bg rounded-full overflow-hidden mb-6 border border-brand-border">
+                  <div className="h-full bg-brand-primary w-2/3 rounded-full relative">
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-white rounded-full shadow-lg" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {Object.entries(selectedData.timeline).map(([key, val]) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-brand-bg/50 border border-brand-border/50">
+                      <span className="text-xs text-brand-text-muted capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                      <span className="text-sm font-bold text-brand-text">{val} days</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Materials Table */}
+              <section>
+                <h3 className="font-bold text-brand-text mb-4">Materials Required</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-brand-text-muted border-b border-brand-border">
+                      <tr>
+                        <th className="pb-3 font-medium">Material</th>
+                        <th className="pb-3 font-medium text-center">Qty</th>
+                        <th className="pb-3 font-medium text-right">Unit Cost</th>
+                        <th className="pb-3 font-medium text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border">
+                      {selectedData.materials.map((m, i) => (
+                        <tr key={i} className="group hover:bg-brand-bg/30">
+                          <td className="py-4 text-brand-text">
+                            <div>{m.name}</div>
+                            <div className="text-[10px] uppercase tracking-tighter text-brand-text-muted">{m.unit}</div>
+                          </td>
+                          <td className="py-4 text-center font-medium">{m.qty * quantity}</td>
+                          <td className="py-4 text-right text-brand-text-muted">PKR {(m.unitCost).toLocaleString()}</td>
+                          <td className="py-4 text-right font-bold text-brand-text">PKR {(m.qty * m.unitCost * quantity).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-brand-primary/5">
+                        <td colSpan="3" className="py-5 font-bold text-brand-text">Total Material Cost</td>
+                        <td className="py-5 text-right font-bold text-brand-primary text-lg">PKR {materialCost.toLocaleString()}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Cost Cards Grid */}
+              <section>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-brand-bg p-4 rounded-xl border border-brand-border">
+                    <div className="text-[10px] uppercase text-brand-text-muted mb-1">Material Cost</div>
+                    <div className="text-lg font-bold text-brand-text">PKR <NumberCounter value={materialCost} /></div>
+                  </div>
+                  <div className="bg-brand-bg p-4 rounded-xl border border-brand-border">
+                    <div className="text-[10px] uppercase text-brand-text-muted mb-1">Labour Cost</div>
+                    <div className="text-lg font-bold text-brand-text">PKR <NumberCounter value={labourCost} /></div>
+                  </div>
+                  <div className="bg-brand-bg p-4 rounded-xl border border-brand-border">
+                    <div className="text-[10px] uppercase text-brand-text-muted mb-1">Overhead (15%)</div>
+                    <div className="text-lg font-bold text-brand-text">PKR <NumberCounter value={overhead} /></div>
+                  </div>
+                  <div className="bg-brand-primary/10 p-4 rounded-xl border border-brand-primary/30">
+                    <div className="text-[10px] uppercase text-brand-primary font-bold mb-1">Total Internal Cost</div>
+                    <div className="text-lg font-extrabold text-brand-primary">PKR <NumberCounter value={totalInternalCost} /></div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Inventory Status */}
+              <section className="bg-brand-bg p-6 rounded-2xl border border-brand-border">
+                <div className="flex items-center mb-6">
+                  <Warehouse size={20} className="text-brand-primary mr-3" />
+                  <h3 className="font-bold text-brand-text">Inventory Check</h3>
+                </div>
+                
+                <div className="space-y-4 mb-6">
+                   {selectedData.materials.map((m, i) => (
+                     <div key={i} className="flex items-center justify-between text-sm">
+                       <span className="text-brand-text-muted">{m.name}</span>
+                       <div className="flex items-center">
+                         <div className={cn(
+                           "w-2 h-2 rounded-full mr-2 animate-pulse",
+                           m.inStock === 'in_stock' ? "bg-green-500" : m.inStock === 'low_stock' ? "bg-amber-500" : "bg-red-500"
+                         )} />
+                         <span className={cn(
+                           "text-xs font-medium capitalize",
+                           m.inStock === 'in_stock' ? "text-green-500" : m.inStock === 'low_stock' ? "text-amber-500" : "text-red-500"
+                         )}>
+                           {m.inStock.replace('_', ' ')}
+                         </span>
+                       </div>
+                     </div>
+                   ))}
+                </div>
+
+                {inventorySummary.out_of_stock ? (
+                  <div className="flex items-start p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-xs">
+                    <AlertCircle size={14} className="mr-2 mt-0.5 shrink-0" />
+                    <span>{inventorySummary.out_of_stock} material{inventorySummary.out_of_stock > 1 ? 's' : ''} require{inventorySummary.out_of_stock === 1 ? 's' : ''} procurement before production can begin.</span>
+                  </div>
+                ) : inventorySummary.low_stock ? (
+                  <div className="flex items-start p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-500 text-xs">
+                    <AlertTriangle size={14} className="mr-2 mt-0.5 shrink-0" />
+                    <span>Inventory running low for {inventorySummary.low_stock} item{inventorySummary.low_stock > 1 ? 's' : ''}. Ordering recommended.</span>
+                  </div>
+                ) : (
+                  <div className="flex items-start p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-500 text-xs">
+                    <CheckCircle2 size={14} className="mr-2 mt-0.5 shrink-0" />
+                    <span>All materials in stock and ready for production.</span>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        </div>
+
+        {/* CLIENT PROPOSAL */}
+        <div className="space-y-8 animate-fade-up" style={{ animationDelay: '100ms' }}>
+          <div className="bg-[#444444] rounded-2xl overflow-hidden border-t-8 border-brand-primary shadow-2xl relative">
+            {/* Professional Document Layout */}
+            <div className="p-10 space-y-12 min-h-[800px] flex flex-col">
+              
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <BrandlineLogo height={32} />
+                  <div className="mt-4 space-y-1 text-xs text-brand-text-muted">
+                    <p>Brandline Advertising</p>
+                    <p>Lahore, Pakistan</p>
+                    <p>+92 42 3XXXXXXX</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-3xl font-black text-brand-text mb-2 tracking-tighter">QUOTATION</h2>
+                  <div className="text-sm space-y-1">
+                    <p className="text-brand-text-muted">Quote ID: <span className="text-brand-text font-bold">QT-2026-{Math.floor(Math.random() * 900) + 100}</span></p>
+                    <p className="text-brand-text-muted">Date: <span className="text-brand-text font-bold">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                    <p className="text-[10px] text-brand-primary uppercase font-bold mt-2">Valid for 7 Days</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Client Info */}
+              <div className="grid grid-cols-2 gap-8 py-8 border-y border-brand-border/30">
+                <div>
+                  <h4 className="text-[10px] uppercase text-brand-text-muted font-bold tracking-widest mb-3">Prepared For</h4>
+                  <p className="text-brand-text font-bold">Valued Client</p>
+                  <p className="text-sm text-brand-text-muted">Commercial Partnership</p>
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase text-brand-text-muted font-bold tracking-widest mb-3">Prepared By</h4>
+                  <p className="text-brand-text font-bold">Brandline AI Estimator</p>
+                  <p className="text-sm text-brand-text-muted">Brandline Advertising, Lahore</p>
+                </div>
+              </div>
+
+              {/* Job Summary */}
+              <div className="space-y-6">
+                <h4 className="text-[10px] uppercase text-brand-text-muted font-bold tracking-widest">Job Summary</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-brand-text-muted">Product</span>
+                    <p className="text-sm font-bold">{productType}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-brand-text-muted">Quantity</span>
+                    <p className="text-sm font-bold">{quantity}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-brand-text-muted">Timeline</span>
+                    <p className="text-sm font-bold text-brand-primary">{selectedData.totalDays} Days</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-brand-text-muted">Category</span>
+                    <p className="text-sm font-bold">Exhibition/Signage</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Table */}
+              <div className="flex-1">
+                 <table className="w-full text-left">
+                   <thead className="bg-brand-bg/50">
+                     <tr>
+                       <th className="p-4 text-[10px] uppercase text-brand-text-muted font-bold">Description</th>
+                       <th className="p-4 text-[10px] uppercase text-brand-text-muted font-bold text-right">Amount (PKR)</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-brand-border/20">
+                     <tr>
+                       <td className="p-4 text-sm">
+                         <p className="font-bold">Base Production Cost</p>
+                         <p className="text-xs text-brand-text-muted">Structural fabrication, base assemblies</p>
+                       </td>
+                       <td className="p-4 text-right font-bold text-sm">{(clientProposalTotal * 0.4).toLocaleString()}</td>
+                     </tr>
+                     <tr>
+                       <td className="p-4 text-sm">
+                         <p className="font-bold">Materials & Finishing</p>
+                         <p className="text-xs text-brand-text-muted">Premium surface treatments, lighting, assets</p>
+                       </td>
+                       <td className="p-4 text-right font-bold text-sm">{(clientProposalTotal * 0.35).toLocaleString()}</td>
+                     </tr>
+                     <tr>
+                       <td className="p-4 text-sm">
+                         <p className="font-bold">Labour & Installation</p>
+                         <p className="text-xs text-brand-text-muted">Expert workforce, tooling, handling</p>
+                       </td>
+                       <td className="p-4 text-right font-bold text-sm">{(clientProposalTotal * 0.25).toLocaleString()}</td>
+                     </tr>
+                   </tbody>
+                   <tfoot>
+                     <tr className="border-t-2 border-brand-primary">
+                       <td className="p-6 text-lg font-black text-brand-primary">TOTAL QUOTATION</td>
+                       <td className="p-6 text-2xl font-black text-brand-primary text-right">PKR <NumberCounter value={clientProposalTotal} /></td>
+                     </tr>
+                   </tfoot>
+                 </table>
+              </div>
+
+              {/* T&C */}
+              <div className="bg-brand-bg/30 p-6 rounded-xl space-y-4">
+                <h4 className="text-[10px] uppercase text-brand-text font-bold tracking-widest">Terms & Conditions</h4>
+                <ul className="text-[10px] text-brand-text-muted list-disc list-inside space-y-1">
+                  <li>50% Advance payment required for job confirmation.</li>
+                  <li>Balance payment on delivery/installation.</li>
+                  <li>Quote valid for 7 business days from date of issuance.</li>
+                  <li>Timeline is subject to material availability and final design approval.</li>
+                </ul>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center pt-8 border-t border-brand-border/30">
+                <p className="text-[10px] text-brand-text-muted uppercase tracking-[0.2em] mb-2">This is a system-generated quotation from Brandline AI</p>
+                <div className="flex justify-center gap-4 text-[10px] text-brand-text font-bold">
+                  <span>brandline-advertising.com</span>
+                  <span className="text-brand-primary">•</span>
+                  <span>info@brandline.com</span>
+                  <span className="text-brand-primary">•</span>
+                  <span>+92 42 111-BRAND</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button 
+              onClick={() => toast("Sharing feature coming in full build")}
+              className="flex-1 bg-brand-primary py-4 rounded-xl font-bold text-white hover:bg-brand-primary-hover transition-colors flex items-center justify-center shadow-lg shadow-brand-primary/20"
+            >
+              <Share2 size={20} className="mr-2" /> Share with Client
+            </button>
+            <button 
+              onClick={() => window.print()}
+              className="flex-1 bg-brand-card py-4 rounded-xl border border-brand-border font-bold text-brand-text hover:bg-brand-bg transition-all flex items-center justify-center"
+            >
+              <FileText size={20} className="mr-2" /> Print / Save PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <div className="h-full">
+      <AnimatePresence mode="wait">
+        {state === 1 && renderState1()}
+        {state === 2 && renderState2()}
+        {state === 3 && renderState3()}
+      </AnimatePresence>
+      
+      <style>{`
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up {
+          animation: fade-up 0.5s ease-out forwards;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ');
+}

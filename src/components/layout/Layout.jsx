@@ -11,8 +11,8 @@ export default function Layout() {
     <div className="flex h-screen bg-brand-bg text-brand-text font-sans overflow-hidden">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? 'ml-16' : 'ml-60'}`}>
-        <TopBar collapsed={collapsed} />
+      <div className="flex-1 flex flex-col transition-all duration-300 ml-16">
+        <TopBar collapsed={true} />
         
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
