@@ -15,7 +15,7 @@ const routeNames = {
 
 export default function TopBar({ collapsed }) {
   const location = useLocation();
-  const title = routeNames[location.pathname] || 'Dashboard';
+  const title = routeNames[location.pathname] || 'Job Estimator';
 
   return (
     <header className="h-16 bg-brand-bg border-b border-brand-border flex items-center justify-between px-6 sticky top-0 z-10">
