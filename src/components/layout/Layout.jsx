@@ -3,9 +3,12 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import AIFloatingChat from '../shared/AIFloatingChat';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
+  const { userProfile } = useAuth();
+  const userName = userProfile?.displayName?.split(' ')[0] || 'there';
 
   return (
     <div className="flex h-screen bg-brand-bg text-brand-text font-sans overflow-hidden">
