@@ -7,6 +7,9 @@ import Products from './pages/Products';
 import Materials from './pages/Materials';
 import Inventory from './pages/Inventory';
 import Settings from './pages/Settings';
+import Projects from './pages/Projects';
+import Clients from './pages/Clients';
+import Invoices from './pages/Invoices';
 import Login from './pages/Login';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -66,6 +69,26 @@ export default function App() {
                   setInventory={setInventory} 
                   materials={materials} 
                 />
+              </ProtectedRoute>
+            } />
+            <Route path="projects" element={
+              <ProtectedRoute permission="viewProjects">
+                <Projects />
+              </ProtectedRoute>
+            } />
+            <Route path="clients" element={
+              <ProtectedRoute permission="viewClients">
+                <Clients />
+              </ProtectedRoute>
+            } />
+            <Route path="invoices" element={
+              <ProtectedRoute permission="viewInvoices">
+                <Invoices />
+              </ProtectedRoute>
+            } />
+            <Route path="invoices/new" element={
+              <ProtectedRoute permission="createInvoices">
+                <Invoices createMode={true} />
               </ProtectedRoute>
             } />
             <Route path="settings" element={

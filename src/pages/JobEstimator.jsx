@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ImagePlus, Sparkles, Check, 
   Lock, Warehouse, Download, 
@@ -10,6 +11,14 @@ import { toast } from 'sonner';
 import { calculateEstimate, getInventoryStatus } from '../data/estimatorData';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../components/layout/Sidebar';
+import { db } from '../firebase/config';
+import { 
+  collection, query, orderBy, getDocs,
+  addDoc, updateDoc, doc, 
+  serverTimestamp, increment,
+  where, setDoc, limit
+} from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 import AddProductModal from '../components/shared/AddProductModal';
 import EstimatorLoader from '../components/shared/EstimatorLoader';
 import ProposalCard from '../components/shared/ProposalCard';
@@ -56,6 +65,8 @@ const NumberCounter = ({ value }) => {
 // --- Main Page Component ---
 
 export default function JobEstimator({ products, materials, inventory, setProducts }) {
+  const navigate = useNavigate();
+  const { currentUser, userProfile } = useAuth();
   const [mode, setMode] = useState('single'); // 'single' | 'project'
   const [state, setState] = useState(1); // 1: Input, 2: Loading, 3: Results
   
@@ -907,15 +918,116 @@ export default function JobEstimator({ products, materials, inventory, setProduc
               Cancel
             </button>
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (!projectName || !clientName) return toast.error("Project and Client names are required");
-                setIsSaved(true);
-                setIsProjectNameModalOpen(false);
-                toast.success(`Project saved — ${projectName}`);
+                
+                try {
+                  setIsSaved('saving');
+                  
+                  // 1. Check if client exists (case-insensitive)
+                  const clientsRef = collection(db, 'clients');
+                  const clientsSnapshot = await getDocs(clientsRef);
+                  let existingClient = clientsSnapshot.docs.find(
+                    doc => doc.data().name.toLowerCase() === clientName.toLowerCase()
+                  );
+                  
+                  let clientId = existingClient?.id;
+                  
+                  // If client does not exist, create it
+                  if (!existingClient) {
+                    // Generate clientNumber
+                    const clientNumber = `CL-${(clientsSnapshot.size + 1).toString().padStart(3, '0')}`;
+                    
+                    const newClient = {
+                      clientNumber,
+                      name: clientName,
+                      company: clientName,
+                      email: "",
+                      phone: "",
+                      address: "",
+                      notes: "",
+                      outstandingBalance: mode === 'single' ? estimate.totalProposal : projectCalculations.totalProposal,
+                      totalRevenue: 0,
+                      totalProjects: 1,
+                      createdAt: serverTimestamp(),
+                      updatedAt: serverTimestamp(),
+                      createdBy: currentUser.uid
+                    };
+                    
+                    const clientDoc = await addDoc(clientsRef, newClient);
+                    clientId = clientDoc.id;
+                    toast.info(`New client '${clientName}' created automatically`);
+                  }
+
+                  // 2. Generate projectNumber
+                  const projectsRef = collection(db, 'projects');
+                  const projectsSnapshot = await getDocs(projectsRef);
+                  const projectNumber = `PQ-2026-${(projectsSnapshot.size + 1).toString().padStart(3, '0')}`;
+
+                  // 3. Prepare project data
+                  const projectProducts = mode === 'single' ? [
+                    {
+                      productId: selectedProductId,
+                      productName: selectedProduct.name,
+                      quantity: quantity,
+                      timelineDays: estimate.totalDays,
+                      internalCost: estimate.totalInternalCost,
+                      clientCost: estimate.totalProposal
+                    }
+                  ] : projectCalculations.productBreakdown.map(p => ({
+                    productId: p.id,
+                    productName: p.name,
+                    quantity: p.quantity,
+                    timelineDays: p.timeline,
+                    internalCost: p.costs.totalInternalCost,
+                    clientCost: p.costs.totalProposal
+                  }));
+
+                  const newProject = {
+                    projectNumber,
+                    projectName,
+                    clientId,
+                    clientName,
+                    status: "active",
+                    products: projectProducts,
+                    totalInternalCost: mode === 'single' ? estimate.totalInternalCost : projectCalculations.totalInternalCost,
+                    totalClientCost: mode === 'single' ? estimate.totalProposal : projectCalculations.totalProposal,
+                    timelineDays: mode === 'single' ? estimate.totalDays : projectCalculations.maxDays,
+                    invoiceId: null,
+                    invoiceStatus: null,
+                    createdBy: currentUser.uid,
+                    createdByName: userProfile?.displayName || currentUser.email.split('@')[0],
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    notes: projectNotes || ""
+                  };
+
+                  // 4. Save project
+                  await addDoc(projectsRef, newProject);
+
+                  // 5. Update client aggregate if they existed
+                  if (existingClient) {
+                    const clientDocRef = doc(db, 'clients', clientId);
+                    await updateDoc(clientDocRef, {
+                      totalProjects: increment(1),
+                      outstandingBalance: increment(newProject.totalClientCost),
+                      updatedAt: serverTimestamp()
+                    });
+                  }
+
+                  setIsSaved(true);
+                  setIsProjectNameModalOpen(false);
+                  toast.success(`Project saved — ${projectName}`);
+                } catch (error) {
+                  console.error("Error saving project:", error);
+                  toast.error("Failed to save project. Please try again.");
+                  setIsSaved(false);
+                }
               }}
-              className="bg-brand-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+              disabled={isSaved === 'saving'}
+              className="bg-brand-primary text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
             >
-              Save Project
+              {isSaved === 'saving' ? 'Saving...' : 'Save Project'}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -944,6 +1056,10 @@ export default function JobEstimator({ products, materials, inventory, setProduc
           background-repeat: no-repeat;
           background-position: right 1rem center;
           background-size: 1.5em;
+        }
+        select option {
+          background-color: #1A1A1A;
+          color: #FFFFFF;
         }
       `}</style>
     </div>

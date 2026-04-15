@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-  Sparkles, Package, Layers, Warehouse, Settings2, ChevronRight
+  Sparkles, FolderOpen, Users, Package, Layers, Warehouse, Settings2, ChevronRight,
+  Receipt
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,6 +14,9 @@ export function cn(...inputs) {
 
 const navItems = [
   { name: 'Job Estimator', path: '/', icon: Sparkles },
+  { name: 'Projects', path: '/projects', icon: FolderOpen },
+  { name: 'Clients', path: '/clients', icon: Users },
+  { name: 'Invoices', path: '/invoices', icon: Receipt },
   { name: 'Products', path: '/products', icon: Package },
   { name: 'Materials', path: '/materials', icon: Layers },
   { name: 'Inventory', path: '/inventory', icon: Warehouse },
@@ -26,7 +30,10 @@ export default function Sidebar() {
 
   // Filter nav items based on permissions
   const visibleNavItems = navItems.filter(item => {
-    if (item.path === '/') return true; // Everyone can see estimator home
+    if (item.path === '/') return true; 
+    if (item.path === '/projects') return hasPermission('viewProjects');
+    if (item.path === '/clients') return hasPermission('viewClients');
+    if (item.path === '/invoices') return hasPermission('viewInvoices');
     if (item.path === '/products') return hasPermission('viewProducts');
     if (item.path === '/materials') return hasPermission('viewMaterials');
     if (item.path === '/inventory') return hasPermission('viewInventory');
