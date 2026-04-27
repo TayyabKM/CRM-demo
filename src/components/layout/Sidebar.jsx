@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, FolderOpen, Users, Package, Layers, Warehouse, Settings2, ChevronRight,
-  Receipt
+  Receipt, ClipboardList, KanbanSquare, ShieldCheck, Banknote, TrendingDown
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,14 +13,19 @@ export function cn(...inputs) {
 }
 
 const navItems = [
-  { name: 'Job Estimator', path: '/', icon: Sparkles },
-  { name: 'Projects', path: '/projects', icon: FolderOpen },
-  { name: 'Clients', path: '/clients', icon: Users },
-  { name: 'Invoices', path: '/invoices', icon: Receipt },
-  { name: 'Products', path: '/products', icon: Package },
-  { name: 'Materials', path: '/materials', icon: Layers },
-  { name: 'Inventory', path: '/inventory', icon: Warehouse },
-  { name: 'Settings', path: '/settings', icon: Settings2 },
+  { name: 'Job Estimator', path: '/',            icon: Sparkles },
+  { name: 'Enquiry / BOQ', path: '/enquiry',     icon: ClipboardList },
+  { name: 'Projects',      path: '/projects',    icon: FolderOpen },
+  { name: 'Task Board',    path: '/kanban',      icon: KanbanSquare },
+  { name: 'Approvals',     path: '/approvals',   icon: ShieldCheck },
+  { name: 'Clients',       path: '/clients',     icon: Users },
+  { name: 'Invoices',      path: '/invoices',    icon: Receipt },
+  { name: 'Receivables',   path: '/receivables', icon: Banknote },
+  { name: 'Expenses',      path: '/expenses',    icon: TrendingDown },
+  { name: 'Products',      path: '/products',    icon: Package },
+  { name: 'Materials',     path: '/materials',   icon: Layers },
+  { name: 'Inventory',     path: '/inventory',   icon: Warehouse },
+  { name: 'Settings',      path: '/settings',    icon: Settings2 },
 ];
 
 export default function Sidebar() {
@@ -31,9 +36,14 @@ export default function Sidebar() {
   // Filter nav items based on permissions
   const visibleNavItems = navItems.filter(item => {
     if (item.path === '/') return true; 
+    if (item.path === '/enquiry') return hasPermission('viewProjects');
     if (item.path === '/projects') return hasPermission('viewProjects');
+    if (item.path === '/kanban') return hasPermission('viewProjects');
+    if (item.path === '/approvals') return hasPermission('viewProjects');
     if (item.path === '/clients') return hasPermission('viewClients');
     if (item.path === '/invoices') return hasPermission('viewInvoices');
+    if (item.path === '/receivables') return hasPermission('viewInvoices');
+    if (item.path === '/expenses') return hasPermission('viewInvoices');
     if (item.path === '/products') return hasPermission('viewProducts');
     if (item.path === '/materials') return hasPermission('viewMaterials');
     if (item.path === '/inventory') return hasPermission('viewInventory');
@@ -76,30 +86,36 @@ export default function Sidebar() {
 
       <div className="flex-1 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
         <nav className="space-y-2 px-2">
-          {visibleNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center p-2.5 rounded-xl transition-all duration-200 group relative whitespace-nowrap",
-                isActive 
-                  ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
-                  : "text-brand-text-muted hover:bg-brand-bg hover:text-brand-text"
-              )}
-            >
-              <item.icon size={22} className="shrink-0" />
-              <span className={cn(
-                "ml-4 font-bold text-sm transition-all duration-300",
-                isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
-              )}>
-                {item.name}
-              </span>
-              {!isExpanded && (
-                <div className="absolute left-14 bg-[#3E3E3E] text-white px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-brand-border whitespace-nowrap">
+          {visibleNavItems.map((item, index) => (
+            <React.Fragment key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) => cn(
+                  "flex items-center p-2.5 rounded-xl transition-all duration-200 group relative whitespace-nowrap",
+                  isActive 
+                    ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
+                    : "text-brand-text-muted hover:bg-brand-bg hover:text-brand-text"
+                )}
+              >
+                <item.icon size={22} className="shrink-0" />
+                <span className={cn(
+                  "ml-4 font-bold text-sm transition-all duration-300",
+                  isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+                )}>
                   {item.name}
-                </div>
+                </span>
+                {!isExpanded && (
+                  <div className="absolute left-14 bg-[#3E3E3E] text-white px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-brand-border whitespace-nowrap">
+                    {item.name}
+                  </div>
+                )}
+              </NavLink>
+              
+              {/* Visual Dividers */}
+              {(item.path === '/' || item.path === '/approvals' || item.path === '/expenses' || item.path === '/inventory') && (
+                <div className="border-t border-brand-border opacity-30 my-2 mx-3" />
               )}
-            </NavLink>
+            </React.Fragment>
           ))}
         </nav>
       </div>
