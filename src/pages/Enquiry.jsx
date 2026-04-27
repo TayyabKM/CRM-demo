@@ -497,8 +497,9 @@ export default function Enquiry() {
                         {line.dept !== 'Services' && (
                           <input 
                             type="number"
-                            value={line.w}
-                            onChange={(e) => handleUpdateLine(line.id, 'w', e.target.value)}
+                            value={line.w === 0 ? '' : line.w}
+                            onChange={(e) => handleUpdateLine(line.id, 'w', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
                             className="w-full bg-brand-bg/50 border border-brand-border/50 rounded px-2 py-1 text-xs"
                           />
                         )}
@@ -507,8 +508,9 @@ export default function Enquiry() {
                         {line.dept !== 'Services' && (
                           <input 
                             type="number"
-                            value={line.h}
-                            onChange={(e) => handleUpdateLine(line.id, 'h', e.target.value)}
+                            value={line.h === 0 ? '' : line.h}
+                            onChange={(e) => handleUpdateLine(line.id, 'h', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
                             className="w-full bg-brand-bg/50 border border-brand-border/50 rounded px-2 py-1 text-xs"
                           />
                         )}
@@ -528,8 +530,9 @@ export default function Enquiry() {
                         {line.dept === 'Services' ? (
                           <input 
                             type="number"
-                            value={line.qty}
-                            onChange={(e) => handleUpdateLine(line.id, 'qty', e.target.value)}
+                            value={line.qty === 0 ? '' : line.qty}
+                            onChange={(e) => handleUpdateLine(line.id, 'qty', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                            onFocus={(e) => e.target.select()}
                             className="w-full bg-brand-bg/50 border border-brand-border/50 rounded px-2 py-1 text-xs font-bold"
                           />
                         ) : (
@@ -541,8 +544,9 @@ export default function Enquiry() {
                       <td className="py-3 px-2">
                         <input 
                           type="number"
-                          value={line.rate}
-                          onChange={(e) => handleUpdateLine(line.id, 'rate', e.target.value)}
+                          value={line.rate === 0 ? '' : line.rate}
+                          onChange={(e) => handleUpdateLine(line.id, 'rate', e.target.value === '' ? 0 : parseFloat(e.target.value) || 0)}
+                          onFocus={(e) => e.target.select()}
                           className="w-full bg-brand-bg/50 border border-brand-border/50 rounded px-2 py-1 text-xs"
                         />
                       </td>

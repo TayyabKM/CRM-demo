@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, FolderOpen, Users, Package, Layers, Warehouse, Settings2, ChevronRight,
-  Receipt, ClipboardList, KanbanSquare, ShieldCheck, Banknote, TrendingDown
+  Receipt, ClipboardList, KanbanSquare, ShieldCheck, Banknote, TrendingDown,
+  Truck, BarChart3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,19 +14,21 @@ export function cn(...inputs) {
 }
 
 const navItems = [
-  { name: 'Job Estimator', path: '/',            icon: Sparkles },
-  { name: 'Enquiry / BOQ', path: '/enquiry',     icon: ClipboardList },
-  { name: 'Projects',      path: '/projects',    icon: FolderOpen },
-  { name: 'Task Board',    path: '/kanban',      icon: KanbanSquare },
-  { name: 'Approvals',     path: '/approvals',   icon: ShieldCheck },
-  { name: 'Clients',       path: '/clients',     icon: Users },
-  { name: 'Invoices',      path: '/invoices',    icon: Receipt },
-  { name: 'Receivables',   path: '/receivables', icon: Banknote },
-  { name: 'Expenses',      path: '/expenses',    icon: TrendingDown },
-  { name: 'Products',      path: '/products',    icon: Package },
-  { name: 'Materials',     path: '/materials',   icon: Layers },
-  { name: 'Inventory',     path: '/inventory',   icon: Warehouse },
-  { name: 'Settings',      path: '/settings',    icon: Settings2 },
+  { name: 'Job Estimator',  path: '/',             icon: Sparkles,      permission: null },
+  { name: 'Enquiry / BOQ',  path: '/enquiry',       icon: ClipboardList, permission: 'viewProjects' },
+  { name: 'Projects',       path: '/projects',      icon: FolderOpen,    permission: 'viewProjects' },
+  { name: 'Task Board',     path: '/kanban',         icon: KanbanSquare,  permission: 'viewProjects' },
+  { name: 'Approvals',      path: '/approvals',      icon: ShieldCheck,   permission: 'viewProjects' },
+  { name: 'Clients',        path: '/clients',        icon: Users,         permission: 'viewClients' },
+  { name: 'Invoices',       path: '/invoices',       icon: Receipt,       permission: 'viewInvoices' },
+  { name: 'Receivables',    path: '/receivables',    icon: Banknote,      permission: 'viewInvoices' },
+  { name: 'Expenses',       path: '/expenses',       icon: TrendingDown,  permission: 'viewInvoices' },
+  { name: 'Dispatch',       path: '/dispatch',       icon: Truck,         permission: 'viewProjects' },
+  { name: 'Profitability',  path: '/profitability',  icon: BarChart3,     permission: 'viewInvoices' },
+  { name: 'Products',       path: '/products',       icon: Package,       permission: 'viewProducts' },
+  { name: 'Materials',      path: '/materials',      icon: Layers,        permission: 'viewMaterials' },
+  { name: 'Inventory',      path: '/inventory',      icon: Warehouse,     permission: 'viewInventory' },
+  { name: 'Settings',       path: '/settings',       icon: Settings2,     permission: 'viewSettings' },
 ];
 
 export default function Sidebar() {
@@ -35,20 +38,8 @@ export default function Sidebar() {
 
   // Filter nav items based on permissions
   const visibleNavItems = navItems.filter(item => {
-    if (item.path === '/') return true; 
-    if (item.path === '/enquiry') return hasPermission('viewProjects');
-    if (item.path === '/projects') return hasPermission('viewProjects');
-    if (item.path === '/kanban') return hasPermission('viewProjects');
-    if (item.path === '/approvals') return hasPermission('viewProjects');
-    if (item.path === '/clients') return hasPermission('viewClients');
-    if (item.path === '/invoices') return hasPermission('viewInvoices');
-    if (item.path === '/receivables') return hasPermission('viewInvoices');
-    if (item.path === '/expenses') return hasPermission('viewInvoices');
-    if (item.path === '/products') return hasPermission('viewProducts');
-    if (item.path === '/materials') return hasPermission('viewMaterials');
-    if (item.path === '/inventory') return hasPermission('viewInventory');
-    if (item.path === '/settings') return hasPermission('viewSettings');
-    return true;
+    if (!item.permission) return true;
+    return hasPermission(item.permission);
   });
 
   const getInitials = () => {
@@ -86,8 +77,8 @@ export default function Sidebar() {
 
       <div className="flex-1 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
         <nav className="space-y-2 px-2">
-          {visibleNavItems.map((item, index) => (
-            <React.Fragment key={item.path}>
+          {visibleNavItems.map((item) => (
+            <div key={item.path}>
               <NavLink
                 to={item.path}
                 className={({ isActive }) => cn(
@@ -112,10 +103,10 @@ export default function Sidebar() {
               </NavLink>
               
               {/* Visual Dividers */}
-              {(item.path === '/' || item.path === '/approvals' || item.path === '/expenses' || item.path === '/inventory') && (
-                <div className="border-t border-brand-border opacity-30 my-2 mx-3" />
+              {['/', '/approvals', '/expenses', '/profitability'].includes(item.path) && (
+                <div className="border-t border-brand-border/30 my-1 mx-2" />
               )}
-            </React.Fragment>
+            </div>
           ))}
         </nav>
       </div>

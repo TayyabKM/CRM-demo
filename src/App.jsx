@@ -20,6 +20,8 @@ import Kanban from './pages/Kanban';
 import Approvals from './pages/Approvals';
 import Expenses from './pages/Expenses';
 import Receivables from './pages/Receivables';
+import Dispatch from './pages/Dispatch';
+import Profitability from './pages/Profitability';
 
 export default function App() {
   const [products, setProducts] = useState(initialProducts);
@@ -120,6 +122,16 @@ export default function App() {
             <Route path="receivables" element={
               <ProtectedRoute permission="viewInvoices">
                 <Receivables />
+              </ProtectedRoute>
+            } />
+            <Route path="dispatch" element={
+              <ProtectedRoute permission="viewProjects">
+                <Dispatch />
+              </ProtectedRoute>
+            } />
+            <Route path="profitability" element={
+              <ProtectedRoute permission="viewInvoices">
+                <Profitability />
               </ProtectedRoute>
             } />
             <Route path="settings" element={

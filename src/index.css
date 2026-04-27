@@ -18,3 +18,18 @@
     @apply bg-brand-bg text-brand-text font-sans antialiased;
   }
 }
+
+/* Sidebar custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(3, 141, 70, 0.3);
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(3, 141, 70, 0.6);
+}
