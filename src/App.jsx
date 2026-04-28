@@ -22,6 +22,7 @@ import Expenses from './pages/Expenses';
 import Receivables from './pages/Receivables';
 import Dispatch from './pages/Dispatch';
 import Profitability from './pages/Profitability';
+import Notifications from './pages/Notifications';
 
 export default function App() {
   const [products, setProducts] = useState(initialProducts);
@@ -49,6 +50,11 @@ export default function App() {
                 setMaterials={setMaterials}
                 inventory={inventory}
               />
+            } />
+            <Route path="notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
             } />
             <Route path="enquiry" element={
               <ProtectedRoute permission="viewProjects">

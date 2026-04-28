@@ -7,8 +7,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Trash2, CheckCircle2, XCircle, 
-  Search, ClipboardList, Loader2, Rocket 
+  Search, ClipboardList, Loader2, Rocket, Sparkles, Minus
 } from 'lucide-react';
+import { initialProducts, masterMaterials, calculateEstimate } from '../data/estimatorData';
 import { toast } from 'sonner';
 
 const DEPARTMENTS = ['Design', 'Printing', 'Fabrication', 'Installation', 'Services', 'Finishing'];
@@ -28,10 +29,14 @@ export default function Enquiry() {
     brief: '',
     surveyNeeded: false,
     flowType: 'Sequential',
+    startDate: '',
     deadline: '',
-    csOwner: 'CS Team',
+    csOwner: userProfile?.displayName || 'CS Team',
     estimatedValue: ''
   });
+
+  // Estimation State
+  const [estimatedProducts, setEstimatedProducts] = useState([{ id: Date.now(), productId: '', quantity: 1 }]);
 
   // BOQ State
   const [boqLines, setBoqLines] = useState([
@@ -122,6 +127,48 @@ export default function Enquiry() {
     });
   }, [boqLines, inventory]);
 
+  // Project Estimation Calculations
+  const estimationCalculations = useMemo(() => {
+    const validItems = estimatedProducts.filter(item => item.productId);
+    let totalInternalCost = 0;
+    let totalClientCost = 0;
+    
+    const productList = validItems.map(item => {
+      const prod = initialProducts.find(p => p.id === item.productId);
+      if (!prod) return null;
+      const est = calculateEstimate(prod, masterMaterials, item.quantity);
+      totalInternalCost += est.totalInternalCost;
+      totalClientCost += est.totalProposal;
+      return {
+        productId: item.productId,
+        productName: prod.name,
+        quantity: item.quantity,
+        internalCost: est.totalInternalCost,
+        clientCost: est.totalProposal
+      };
+    }).filter(Boolean);
+
+    return {
+      productList,
+      totalInternalCost,
+      totalClientCost
+    };
+  }, [estimatedProducts]);
+
+  const addEstimatedProduct = () => {
+    setEstimatedProducts([...estimatedProducts, { id: Date.now(), productId: '', quantity: 1 }]);
+  };
+
+  const updateEstimatedProduct = (id, field, value) => {
+    setEstimatedProducts(estimatedProducts.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const removeEstimatedProduct = (id) => {
+    if (estimatedProducts.length > 1) {
+      setEstimatedProducts(estimatedProducts.filter(p => p.id !== id));
+    }
+  };
+
   const handleAddLine = () => {
     setBoqLines([...boqLines, { 
       id: Date.now(), 
@@ -148,71 +195,70 @@ export default function Enquiry() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleCreateEnquiry = async (approvalStatus) => {
     if (!enquiryForm.clientName || !enquiryForm.projectTitle) {
       toast.error('Please fill in required project details');
       return;
     }
-    if (boqLines.length === 0 || boqLines.every(l => !l.description)) {
-      toast.error('Please add at least one BOQ line');
-      return;
+    if (approvalStatus === 'pending_approval') {
+      if (boqLines.length === 0 || boqLines.every(l => !l.description)) {
+        toast.error('Please add at least one BOQ line');
+        return;
+      }
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Get counts for IDs
+      // 1. Get count for ID
       const enquiriesSnap = await getDocs(collection(db, 'enquiries'));
-      const projectsSnap = await getDocs(collection(db, 'projects'));
-      
       const enqCount = enquiriesSnap.size + 1;
-      const prjCount = projectsSnap.size + 1;
-      
       const enqNo = `ENQ-${enqCount.toString().padStart(3, '0')}`;
-      const prjNo = `PRJ-${prjCount.toString().padStart(3, '0')}`;
-      const joNo = `JO-${prjCount.toString().padStart(3, '0')}`;
 
       const totalRevenue = parseFloat(boqSummary.totalAmount);
 
       const enquiryData = {
-        enqNo, prjNo, joNo,
+        enqNo,
         ...enquiryForm,
         boqLines: boqLines.map(l => ({
           ...l,
           sqft: calculateSqft(l),
           amount: calculateAmount(l)
         })),
+        estimatedProducts: estimationCalculations.productList,
+        estimatedTotalCost: estimationCalculations.totalInternalCost,
+        estimatedClientTotal: estimationCalculations.totalClientCost,
         totalRevenue,
+        approvalStatus, // "draft" | "pending_approval"
+        submittedAt: approvalStatus === 'pending_approval' ? serverTimestamp() : null,
         status: "New",
         createdBy: currentUser.uid,
         createdByName: userProfile?.displayName || currentUser.email,
         createdAt: serverTimestamp()
       };
 
-      const projectData = {
-        projectNumber: prjNo,
-        projectName: enquiryForm.projectTitle,
-        clientName: enquiryForm.clientName,
-        clientId: null,
-        enqNo, joNo,
-        status: "active",
-        products: [],
-        totalInternalCost: Math.round(totalRevenue * 0.65),
-        totalClientCost: totalRevenue,
-        timelineDays: 14,
-        source: "enquiry",
-        invoiceId: null,
-        invoiceStatus: null,
-        createdBy: currentUser.uid,
-        createdByName: userProfile?.displayName || currentUser.email,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        notes: enquiryForm.brief
-      };
+      const docRef = await addDoc(collection(db, 'enquiries'), enquiryData);
 
-      await addDoc(collection(db, 'enquiries'), enquiryData);
-      await addDoc(collection(db, 'projects'), projectData);
-
-      toast.success(`✅ Pipeline created! ${enqNo} → ${prjNo} → ${joNo}`);
+      if (approvalStatus === 'pending_approval') {
+        // Create notification for superadmin
+        await addDoc(collection(db, 'notifications'), {
+          type: "enquiry_approval",
+          title: "Enquiry Pending Approval",
+          message: `${enquiryForm.csOwner} submitted ${enqNo} for ${enquiryForm.clientName} — ${enquiryForm.projectTitle}. Est. Value: PKR ${totalRevenue.toLocaleString()}`,
+          enquiryId: docRef.id,
+          enquiryNo: enqNo,
+          forRole: "superadmin",
+          forDept: null,
+          fromUserId: currentUser.uid,
+          fromUserName: userProfile?.displayName || currentUser.email,
+          status: "unread",
+          actionRequired: true,
+          actionType: "approve_enquiry",
+          createdAt: serverTimestamp()
+        });
+        toast.success(`Enquiry ${enqNo} submitted for approval`);
+      } else {
+        toast.success("Enquiry saved as draft");
+      }
       
       // Reset form
       setEnquiryForm({
@@ -223,15 +269,17 @@ export default function Enquiry() {
         brief: '',
         surveyNeeded: false,
         flowType: 'Sequential',
+        startDate: '',
         deadline: '',
-        csOwner: 'CS Team',
+        csOwner: userProfile?.displayName || 'CS Team',
         estimatedValue: ''
       });
       setBoqLines([{ id: Date.now(), dept: 'Design', description: '', material: '', w: 0, h: 0, uom: 'Inches', qty: 1, rate: 0 }]);
+      setEstimatedProducts([{ id: Date.now(), productId: '', quantity: 1 }]);
       
     } catch (error) {
-      console.error('Error creating pipeline:', error);
-      toast.error('Failed to create project pipeline');
+      console.error('Error creating enquiry:', error);
+      toast.error('Failed to save enquiry');
     } finally {
       setIsSubmitting(false);
     }
@@ -310,6 +358,16 @@ export default function Enquiry() {
                     placeholder="+92..."
                   />
                 </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-brand-text-muted uppercase mb-1">Project Start Date</label>
+                  <input 
+                    type="date"
+                    value={enquiryForm.startDate}
+                    onChange={(e) => setEnquiryForm({...enquiryForm, startDate: e.target.value})}
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
+                  />
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-brand-text-muted uppercase mb-1">Deadline</label>
                   <input 
@@ -319,6 +377,7 @@ export default function Enquiry() {
                     className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
                   />
                 </div>
+              </div>
               </div>
 
               <div>
@@ -347,7 +406,7 @@ export default function Enquiry() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-brand-text-muted uppercase mb-1">CS Owner</label>
+                  <label className="block text-xs font-bold text-brand-text-muted uppercase mb-1">Process Owner</label>
                   <input 
                     type="text"
                     value={enquiryForm.csOwner}
@@ -369,6 +428,88 @@ export default function Enquiry() {
             </div>
           </div>
 
+          {/* Job Estimation Section */}
+          <div className="bg-brand-card border border-brand-border rounded-2xl p-6 shadow-xl">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Sparkles className="text-brand-primary" />
+              Job Estimation
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-bold text-brand-text-muted uppercase tracking-widest">Estimated Products</p>
+                <button 
+                  onClick={addEstimatedProduct}
+                  className="text-xs font-bold text-brand-primary hover:text-brand-primary/80 flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Add Product
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {estimatedProducts.map((item, idx) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-brand-bg/30 p-2 rounded-xl border border-brand-border/50">
+                    <div className="col-span-6">
+                      <select 
+                        value={item.productId}
+                        onChange={(e) => updateEstimatedProduct(item.id, 'productId', e.target.value)}
+                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-brand-primary"
+                      >
+                        <option value="">Select Product...</option>
+                        {initialProducts.map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <input 
+                        type="number"
+                        min="1"
+                        value={item.quantity === 0 ? '' : item.quantity}
+                        onChange={(e) => updateEstimatedProduct(item.id, 'quantity', e.target.value === '' ? 0 : parseInt(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-full bg-brand-bg border border-brand-border rounded-lg px-2 py-1.5 text-xs text-center"
+                        placeholder="Qty"
+                      />
+                    </div>
+                    <div className="col-span-3 text-right">
+                      <p className="text-[10px] font-bold text-brand-text">
+                        {item.productId ? `PKR ${calculateEstimate(initialProducts.find(p => p.id === item.productId), masterMaterials, item.quantity).totalProposal.toLocaleString()}` : '—'}
+                      </p>
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <button 
+                        disabled={estimatedProducts.length === 1}
+                        onClick={() => removeEstimatedProduct(item.id)}
+                        className="text-brand-text-muted hover:text-red-500 disabled:opacity-0"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Running Summary */}
+              <div className="mt-6 pt-4 border-t border-brand-border space-y-2">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="text-brand-text-muted">Total Products:</span>
+                  <span className="text-brand-text font-bold">{estimatedProducts.filter(p => p.productId).length}</span>
+                </div>
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="text-brand-text-muted">Est. Internal Cost:</span>
+                  <span className="text-brand-text font-bold">PKR {estimationCalculations.totalInternalCost.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm font-black border-t border-brand-border pt-2">
+                  <span className="text-brand-primary">Est. Client Total:</span>
+                  <span className="text-brand-primary">PKR {estimationCalculations.totalClientCost.toLocaleString()}</span>
+                </div>
+                <p className="text-[9px] text-brand-text-muted italic text-right mt-1">* 35% margin applied to internal cost</p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-brand-border bg-brand-bg/30">
               <h3 className="font-bold text-sm">Recent Enquiries</h3>
@@ -378,8 +519,8 @@ export default function Enquiry() {
                 <thead>
                   <tr className="bg-brand-bg/50 text-brand-text-muted border-b border-brand-border">
                     <th className="px-4 py-3 font-bold text-[10px] uppercase">ENQ#</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase">Client</th>
-                    <th className="px-4 py-3 font-bold text-[10px] uppercase">Status</th>
+                    <th className="px-4 py-3 font-bold text-[10px] uppercase">Client & Project</th>
+                    <th className="px-4 py-3 font-bold text-[10px] uppercase text-center">Approval</th>
                     <th className="px-4 py-3 font-bold text-[10px] uppercase">Date</th>
                   </tr>
                 </thead>
@@ -388,17 +529,18 @@ export default function Enquiry() {
                     <tr key={enq.id} className="hover:bg-brand-bg/30 transition-colors">
                       <td className="px-4 py-3 font-mono text-brand-primary font-bold">{enq.enqNo}</td>
                       <td className="px-4 py-3">
-                        <div className="font-bold text-xs">{enq.client}</div>
-                        <div className="text-[10px] text-brand-text-muted truncate max-w-[150px]">{enq.title}</div>
+                        <div className="font-bold text-xs">{enq.clientName}</div>
+                        <div className="text-[10px] text-brand-text-muted truncate max-w-[150px]">{enq.projectTitle}</div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          enq.status === 'New' ? 'bg-blue-500/10 text-blue-500' :
-                          enq.status === 'In Progress' ? 'bg-amber-500/10 text-amber-500' :
-                          enq.status === 'Converted' ? 'bg-green-500/10 text-green-500' :
-                          'bg-red-500/10 text-red-500'
+                          enq.approvalStatus === 'draft' ? 'bg-gray-500/10 text-gray-500' :
+                          enq.approvalStatus === 'pending_approval' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
+                          enq.approvalStatus === 'approved' ? 'bg-green-500/10 text-green-500' :
+                          enq.approvalStatus === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                          'bg-gray-500/10 text-gray-500'
                         }`}>
-                          {enq.status}
+                          {enq.approvalStatus || 'draft'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[10px] text-brand-text-muted">
@@ -618,23 +760,32 @@ export default function Enquiry() {
               </div>
             </div>
 
-            <button 
-              disabled={isSubmitting || !enquiryForm.clientName || !enquiryForm.projectTitle || boqLines.length === 0}
-              onClick={handleSubmit}
-              className="mt-8 w-full bg-brand-primary hover:bg-brand-primary-hover disabled:bg-brand-border disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-brand-primary/20"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" />
-                  Creating Pipeline...
-                </>
-              ) : (
-                <>
-                  <Rocket />
-                  Create Project + Job Order
-                </>
-              )}
-            </button>
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <button 
+                disabled={isSubmitting || !enquiryForm.clientName || !enquiryForm.projectTitle}
+                onClick={() => handleCreateEnquiry('draft')}
+                className="bg-transparent border-2 border-brand-primary text-brand-primary hover:bg-brand-primary/5 disabled:opacity-50 disabled:cursor-not-allowed py-4 rounded-xl font-bold text-lg transition-all"
+              >
+                Save as Draft
+              </button>
+              <button 
+                disabled={isSubmitting || !enquiryForm.clientName || !enquiryForm.projectTitle || boqLines.length === 0}
+                onClick={() => handleCreateEnquiry('pending_approval')}
+                className="bg-brand-primary hover:bg-brand-primary-hover disabled:bg-brand-border disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-brand-primary/20"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Submit for Approval
+                    <Rocket size={20} />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

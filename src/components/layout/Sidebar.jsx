@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, FolderOpen, Users, Package, Layers, Warehouse, Settings2, ChevronRight,
   Receipt, ClipboardList, KanbanSquare, ShieldCheck, Banknote, TrendingDown,
-  Truck, BarChart3
+  Truck, BarChart3, Bell
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -15,6 +15,7 @@ export function cn(...inputs) {
 
 const navItems = [
   { name: 'Job Estimator',  path: '/',             icon: Sparkles,      permission: null },
+  { name: 'Inbox',          path: '/notifications', icon: Bell,          permission: null },
   { name: 'Enquiry / BOQ',  path: '/enquiry',       icon: ClipboardList, permission: 'viewProjects' },
   { name: 'Projects',       path: '/projects',      icon: FolderOpen,    permission: 'viewProjects' },
   { name: 'Task Board',     path: '/kanban',         icon: KanbanSquare,  permission: 'viewProjects' },
