@@ -46,6 +46,15 @@ import { toast } from 'sonner';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
+const DEPARTMENTS = [
+  { id: 'finance', name: 'Finance' },
+  { id: 'inventory', name: 'Inventory' },
+  { id: 'design', name: 'Design' },
+  { id: 'production', name: 'Production' },
+  { id: 'sales', name: 'Sales' },
+  { id: 'admin', name: 'Admin' }
+];
+
 // Secondary Firebase app for creating users without signing out admin
 const firebaseConfig = {
   apiKey: "AIzaSyCnl5Fj2ODIbhXsk81lXXtqOCvoZFr71tw",
@@ -385,6 +394,7 @@ function AddUserModal({ onUserAdded, isOpen, setIsOpen }) {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('custom');
+  const [department, setDepartment] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleAdd = async (e) => {
@@ -410,6 +420,7 @@ function AddUserModal({ onUserAdded, isOpen, setIsOpen }) {
         displayName: displayName || email.split('@')[0],
         photoURL: null,
         role: role,
+        department: department || null,
         permissions: {
           viewEstimator: true, viewProjects: true, viewClients: true, viewInvoices: true, 
           viewProducts: true, viewMaterials: true, viewInventory: true, viewSettings: true,
@@ -512,6 +523,20 @@ function AddUserModal({ onUserAdded, isOpen, setIsOpen }) {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-brand-text-muted uppercase tracking-widest ml-1">Department</label>
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full h-12 bg-brand-bg border border-brand-border focus:border-brand-primary rounded-xl px-4 text-brand-text font-medium outline-none transition-all"
+            >
+              <option value="">None</option>
+              {DEPARTMENTS.map(dept => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="bg-brand-bg rounded-xl p-4 border border-brand-primary/10">
             <p className="text-[10px] text-brand-primary font-bold italic">
               * The user will be able to change their password and profile details after their first login.
@@ -585,10 +610,14 @@ const permissionGroups = [
 
 function PermissionsModal({ isOpen, setIsOpen, user, onUpdate }) {
   const [perms, setPerms] = useState({});
+  const [department, setDepartment] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (user) setPerms(user.permissions || {});
+    if (user) {
+      setPerms(user.permissions || {});
+      setDepartment(user.department || '');
+    }
   }, [user]);
 
   const togglePerm = (id) => {
@@ -600,6 +629,7 @@ function PermissionsModal({ isOpen, setIsOpen, user, onUpdate }) {
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         permissions: perms,
+        department: department || null,
         role: user.role // Keep role same
       });
       toast.success("Permissions updated successfully");
@@ -630,6 +660,20 @@ function PermissionsModal({ isOpen, setIsOpen, user, onUpdate }) {
           </div>
           <DialogDescription className="text-brand-text-muted font-medium">Configure granular access controls for this operations profile.</DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-2 mt-4 px-1">
+          <label className="text-[10px] font-black text-brand-text-muted uppercase tracking-widest ml-1">Assignment: Department</label>
+          <select
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            className="w-full h-11 bg-brand-bg border border-brand-border focus:border-brand-primary rounded-xl px-4 text-brand-text font-medium outline-none transition-all text-sm"
+          >
+            <option value="">None</option>
+            {DEPARTMENTS.map(dept => (
+              <option key={dept.id} value={dept.id}>{dept.name}</option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar my-6 space-y-8">
           {user.role === 'superadmin' ? (

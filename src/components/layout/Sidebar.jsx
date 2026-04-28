@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, FolderOpen, Users, Package, Layers, Warehouse, Settings2, ChevronRight,
-  Receipt
+  Receipt, ClipboardList, KanbanSquare, ShieldCheck, Banknote, TrendingDown,
+  Truck, BarChart3, Bell
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,14 +14,22 @@ export function cn(...inputs) {
 }
 
 const navItems = [
-  { name: 'Job Estimator', path: '/', icon: Sparkles },
-  { name: 'Projects', path: '/projects', icon: FolderOpen },
-  { name: 'Clients', path: '/clients', icon: Users },
-  { name: 'Invoices', path: '/invoices', icon: Receipt },
-  { name: 'Products', path: '/products', icon: Package },
-  { name: 'Materials', path: '/materials', icon: Layers },
-  { name: 'Inventory', path: '/inventory', icon: Warehouse },
-  { name: 'Settings', path: '/settings', icon: Settings2 },
+  { name: 'Job Estimator',  path: '/',             icon: Sparkles,      permission: null },
+  { name: 'Inbox',          path: '/notifications', icon: Bell,          permission: null },
+  { name: 'Enquiry / BOQ',  path: '/enquiry',       icon: ClipboardList, permission: 'viewProjects' },
+  { name: 'Projects',       path: '/projects',      icon: FolderOpen,    permission: 'viewProjects' },
+  { name: 'Task Board',     path: '/kanban',         icon: KanbanSquare,  permission: 'viewProjects' },
+  { name: 'Approvals',      path: '/approvals',      icon: ShieldCheck,   permission: 'viewProjects' },
+  { name: 'Clients',        path: '/clients',        icon: Users,         permission: 'viewClients' },
+  { name: 'Invoices',       path: '/invoices',       icon: Receipt,       permission: 'viewInvoices' },
+  { name: 'Receivables',    path: '/receivables',    icon: Banknote,      permission: 'viewInvoices' },
+  { name: 'Expenses',       path: '/expenses',       icon: TrendingDown,  permission: 'viewInvoices' },
+  { name: 'Dispatch',       path: '/dispatch',       icon: Truck,         permission: 'viewProjects' },
+  { name: 'Profitability',  path: '/profitability',  icon: BarChart3,     permission: 'viewInvoices' },
+  { name: 'Products',       path: '/products',       icon: Package,       permission: 'viewProducts' },
+  { name: 'Materials',      path: '/materials',      icon: Layers,        permission: 'viewMaterials' },
+  { name: 'Inventory',      path: '/inventory',      icon: Warehouse,     permission: 'viewInventory' },
+  { name: 'Settings',       path: '/settings',       icon: Settings2,     permission: 'viewSettings' },
 ];
 
 export default function Sidebar() {
@@ -30,15 +39,8 @@ export default function Sidebar() {
 
   // Filter nav items based on permissions
   const visibleNavItems = navItems.filter(item => {
-    if (item.path === '/') return true; 
-    if (item.path === '/projects') return hasPermission('viewProjects');
-    if (item.path === '/clients') return hasPermission('viewClients');
-    if (item.path === '/invoices') return hasPermission('viewInvoices');
-    if (item.path === '/products') return hasPermission('viewProducts');
-    if (item.path === '/materials') return hasPermission('viewMaterials');
-    if (item.path === '/inventory') return hasPermission('viewInventory');
-    if (item.path === '/settings') return hasPermission('viewSettings');
-    return true;
+    if (!item.permission) return true;
+    return hasPermission(item.permission);
   });
 
   const getInitials = () => {
@@ -77,29 +79,35 @@ export default function Sidebar() {
       <div className="flex-1 py-6 overflow-y-auto overflow-x-hidden custom-scrollbar">
         <nav className="space-y-2 px-2">
           {visibleNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center p-2.5 rounded-xl transition-all duration-200 group relative whitespace-nowrap",
-                isActive 
-                  ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
-                  : "text-brand-text-muted hover:bg-brand-bg hover:text-brand-text"
-              )}
-            >
-              <item.icon size={22} className="shrink-0" />
-              <span className={cn(
-                "ml-4 font-bold text-sm transition-all duration-300",
-                isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
-              )}>
-                {item.name}
-              </span>
-              {!isExpanded && (
-                <div className="absolute left-14 bg-[#3E3E3E] text-white px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-brand-border whitespace-nowrap">
+            <div key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) => cn(
+                  "flex items-center p-2.5 rounded-xl transition-all duration-200 group relative whitespace-nowrap",
+                  isActive 
+                    ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
+                    : "text-brand-text-muted hover:bg-brand-bg hover:text-brand-text"
+                )}
+              >
+                <item.icon size={22} className="shrink-0" />
+                <span className={cn(
+                  "ml-4 font-bold text-sm transition-all duration-300",
+                  isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+                )}>
                   {item.name}
-                </div>
+                </span>
+                {!isExpanded && (
+                  <div className="absolute left-14 bg-[#3E3E3E] text-white px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-brand-border whitespace-nowrap">
+                    {item.name}
+                  </div>
+                )}
+              </NavLink>
+              
+              {/* Visual Dividers */}
+              {['/', '/approvals', '/expenses', '/profitability'].includes(item.path) && (
+                <div className="border-t border-brand-border/30 my-1 mx-2" />
               )}
-            </NavLink>
+            </div>
           ))}
         </nav>
       </div>

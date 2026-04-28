@@ -87,6 +87,7 @@ export const AuthProvider = ({ children }) => {
           displayName: user.displayName || user.email.split('@')[0],
           photoURL: user.photoURL || null,
           role: isFirstUser ? 'superadmin' : 'custom',
+          department: isFirstUser ? 'admin' : null,
           permissions: defaultPermissions,
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp()

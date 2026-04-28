@@ -19,6 +19,7 @@ import {
   where, setDoc, limit
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { generateEstimatePDF } from '../utils/generateEstimatePDF';
 import AddProductModal from '../components/shared/AddProductModal';
 import EstimatorLoader from '../components/shared/EstimatorLoader';
 import ProposalCard from '../components/shared/ProposalCard';
@@ -268,6 +269,20 @@ export default function JobEstimator({ products, materials, inventory, setProduc
       invSummary
     };
   }, [projectItems, products, materials, inventory]);
+
+  const handleDownloadPDF = () => {
+    toast.info("Preparing professional proposal...");
+    const data = {
+      product: selectedProduct,
+      quantity,
+      estimate,
+      projectCalculations,
+      clientName,
+      clientContact,
+      projectName
+    };
+    generateEstimatePDF(data, mode);
+  };
 
   const isProjectComplete = projectItems.every(i => i.productId && i.quantity > 0);
 
@@ -605,7 +620,10 @@ export default function JobEstimator({ products, materials, inventory, setProduc
               {isSaved ? 'Saved' : 'Name & Save Project'}
             </button>
           )}
-          <button onClick={() => toast.info("PDF export coming in full build")} className="flex-1 md:flex-none px-6 py-2.5 rounded-xl border border-brand-border text-brand-text font-bold hover:bg-brand-bg transition-all flex items-center justify-center gap-2 text-sm">
+          <button 
+            onClick={handleDownloadPDF} 
+            className="flex-1 md:flex-none px-6 py-2.5 rounded-xl border border-brand-border text-brand-text font-bold hover:bg-brand-bg transition-all flex items-center justify-center gap-2 text-sm"
+          >
             <Download size={16} /> Download PDF
           </button>
         </div>

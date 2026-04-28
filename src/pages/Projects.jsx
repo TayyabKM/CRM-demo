@@ -265,6 +265,13 @@ function ProjectCard({ project, onView, onStatusUpdate, canEdit }) {
     cancelled: "bg-red-500/10 text-red-500 border-red-500/20"
   };
 
+  const approvalStatusColors = {
+    pending_approval: "bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse",
+    pending_admin_approval: "bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse",
+    approved: "bg-green-500/10 text-green-500 border-green-500/20",
+    rejected: "bg-red-500/10 text-red-500 border-red-500/20"
+  };
+
   const formatDate = (ts) => {
     if (!ts) return 'Unknown';
     const date = ts.toDate();
@@ -282,7 +289,17 @@ function ProjectCard({ project, onView, onStatusUpdate, canEdit }) {
       <div className="absolute top-0 left-0 w-1 h-full bg-transparent group-hover:bg-brand-primary/40 transition-all" />
       
       <div className="flex justify-between items-start mb-1">
-        <span className="text-[10px] font-black text-brand-text-muted uppercase tracking-widest">{project.projectNumber}</span>
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-black text-brand-text-muted uppercase tracking-widest">{project.projectNumber}</span>
+          {project.approvalStatus && project.approvalStatus !== 'approved' && (
+            <span className={cn(
+              "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border w-fit",
+              approvalStatusColors[project.approvalStatus]
+            )}>
+              {project.approvalStatus.replace(/_/g, ' ')}
+            </span>
+          )}
+        </div>
         <div className={cn(
           "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
           statusColors[project.status] || "bg-brand-bg text-brand-text-muted"
@@ -295,9 +312,28 @@ function ProjectCard({ project, onView, onStatusUpdate, canEdit }) {
         <h3 className="text-xl font-black text-brand-text leading-tight group-hover:text-brand-primary transition-colors cursor-pointer line-clamp-2" onClick={onView}>
           {project.projectName}
         </h3>
-        <p className="text-xs text-brand-text-muted mt-1 font-bold italic truncate flex items-center gap-1.5">
-           <Users size={12} /> {project.clientName}
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-brand-text-muted font-bold italic truncate flex items-center gap-1.5">
+             <Users size={12} /> {project.clientName}
+          </p>
+          <div className="flex gap-1">
+            {['finance', 'inventory', 'design', 'production'].map(dept => {
+              const status = project.deptReadiness?.[dept]?.status || 'pending';
+              return (
+                <div 
+                  key={dept}
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-full border border-brand-card transition-all",
+                    status === 'ready' ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.4)]" :
+                    status === 'not_ready' ? "bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.4)]" :
+                    "bg-brand-bg border-brand-border"
+                  )}
+                  title={`${dept.toUpperCase()}: ${status}`}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 py-4 border-y border-brand-border/50">
@@ -388,6 +424,7 @@ function ProjectDetailModal({ isOpen, setIsOpen, project, activeTab, setActiveTa
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
     { id: 'products', label: 'Products & Costs', icon: Package },
+    { id: 'readiness', label: 'Readiness', icon: Building2 },
     { id: 'timeline', label: 'Manufacturing Timeline', icon: Clock },
     { id: 'invoice', label: 'Invoice status', icon: FileText }
   ];
@@ -560,11 +597,81 @@ function ProjectDetailModal({ isOpen, setIsOpen, project, activeTab, setActiveTa
                         </table>
                      </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <SummaryStat label="Total Internal Cost" value={project.totalInternalCost} currency="PKR" color="text-brand-text" />
-                        <SummaryStat label="Gross Margin" value={project.totalClientCost - project.totalInternalCost} currency="PKR" color="text-brand-primary" badge={`${Math.round(((project.totalClientCost - project.totalInternalCost) / project.totalClientCost) * 100)}%`} />
+                        <SummaryStat label="Gross Margin" value={project.totalClientCost - project.totalInternalCost} currency="PKR" color="text-brand-primary" badge={project.totalClientCost > 0 ? `${Math.round(((project.totalClientCost - project.totalInternalCost) / project.totalClientCost) * 100)}%` : '0%'} />
                         <SummaryStat label="Total Proposal Value" value={project.totalClientCost} currency="PKR" color="text-brand-primary" isMain />
-                     </div>
+                      </div>
+                  </motion.div>
+                )}
+
+                {activeTab === 'readiness' && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
+                    className="space-y-8"
+                  >
+                    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-2xl p-6 flex items-start gap-4">
+                      <ShieldCheck className="text-brand-primary shrink-0" size={24} />
+                      <div>
+                        <h4 className="text-brand-primary font-black uppercase tracking-widest text-xs mb-1">Pre-Production Readiness Tracking</h4>
+                        <p className="text-brand-text-muted text-sm font-medium">Departments must confirm readiness before production tasks are officially released.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {['finance', 'inventory', 'design', 'production'].map(dept => {
+                        const status = project.deptReadiness?.[dept] || { status: 'pending' };
+                        return (
+                          <div key={dept} className={cn(
+                            "bg-brand-card border border-brand-border rounded-2xl p-6 transition-all",
+                            status.status === 'ready' ? "border-green-500/30 ring-1 ring-green-500/20" :
+                            status.status === 'not_ready' ? "border-red-500/30 ring-1 ring-red-500/20 shadow-lg shadow-red-500/10" : ""
+                          )}>
+                            <div className="flex justify-between items-center mb-4">
+                              <h5 className="font-black text-brand-text uppercase tracking-widest flex items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  status.status === 'ready' ? "bg-green-500" :
+                                  status.status === 'not_ready' ? "bg-red-500" : "bg-brand-text-muted"
+                                )} />
+                                {dept}
+                              </h5>
+                              <span className={cn(
+                                "text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-tighter",
+                                status.status === 'ready' ? "bg-green-500/10 text-green-500" :
+                                status.status === 'not_ready' ? "bg-red-500/10 text-red-500" : "bg-brand-bg text-brand-text-muted"
+                              )}>
+                                {status.status.replace('_', ' ')}
+                              </span>
+                            </div>
+                            
+                            {status.status === 'not_ready' ? (
+                              <div className="space-y-4">
+                                <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
+                                  <p className="text-[10px] font-black text-red-400 uppercase mb-1">Blocker Reason</p>
+                                  <p className="text-xs text-brand-text italic leading-relaxed">{status.reason}</p>
+                                </div>
+                                {dept === 'finance' && (
+                                  <button 
+                                    onClick={() => navigate('/receivables')}
+                                    className="w-full py-2.5 bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                                  >
+                                    Review Receivables
+                                  </button>
+                                )}
+                              </div>
+                            ) : status.status === 'ready' ? (
+                              <div className="flex items-center gap-2 text-[10px] text-green-500 font-bold">
+                                <Check size={12} />
+                                <span>Confirmed by {status.respondedBy || 'System'}</span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-brand-text-muted italic">Awaiting confirmation from {dept} department...</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </motion.div>
                 )}
 

@@ -15,6 +15,15 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { initialProducts, masterMaterials, initialInventory } from './data/estimatorData';
 
+import Enquiry from './pages/Enquiry';
+import Kanban from './pages/Kanban';
+import Approvals from './pages/Approvals';
+import Expenses from './pages/Expenses';
+import Receivables from './pages/Receivables';
+import Dispatch from './pages/Dispatch';
+import Profitability from './pages/Profitability';
+import Notifications from './pages/Notifications';
+
 export default function App() {
   const [products, setProducts] = useState(initialProducts);
   const [materials, setMaterials] = useState(masterMaterials);
@@ -41,6 +50,26 @@ export default function App() {
                 setMaterials={setMaterials}
                 inventory={inventory}
               />
+            } />
+            <Route path="notifications" element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } />
+            <Route path="enquiry" element={
+              <ProtectedRoute permission="viewProjects">
+                <Enquiry />
+              </ProtectedRoute>
+            } />
+            <Route path="kanban" element={
+              <ProtectedRoute permission="viewProjects">
+                <Kanban />
+              </ProtectedRoute>
+            } />
+            <Route path="approvals" element={
+              <ProtectedRoute permission="viewProjects">
+                <Approvals />
+              </ProtectedRoute>
             } />
             <Route path="products" element={
               <ProtectedRoute permission="viewProducts">
@@ -89,6 +118,26 @@ export default function App() {
             <Route path="invoices/new" element={
               <ProtectedRoute permission="createInvoices">
                 <Invoices createMode={true} />
+              </ProtectedRoute>
+            } />
+            <Route path="expenses" element={
+              <ProtectedRoute permission="viewInvoices">
+                <Expenses />
+              </ProtectedRoute>
+            } />
+            <Route path="receivables" element={
+              <ProtectedRoute permission="viewInvoices">
+                <Receivables />
+              </ProtectedRoute>
+            } />
+            <Route path="dispatch" element={
+              <ProtectedRoute permission="viewProjects">
+                <Dispatch />
+              </ProtectedRoute>
+            } />
+            <Route path="profitability" element={
+              <ProtectedRoute permission="viewInvoices">
+                <Profitability />
               </ProtectedRoute>
             } />
             <Route path="settings" element={
